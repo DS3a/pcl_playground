@@ -3,7 +3,6 @@
 import sys
 import os
 
-
 import rclpy 
 from rclpy.node import Node
 import sensor_msgs.msg as sensor_msgs
@@ -79,4 +78,5 @@ def main(args=None):
     rclpy.shutdown()
 
 if __name__ == '__main__':
+    lib.test()
     main()
