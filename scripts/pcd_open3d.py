@@ -17,13 +17,15 @@ import struct
 
 class PCDListener(Node):
 
-    def __init__(self):
+    def __init__(self, debug=False):
         super().__init__('pcd_subsriber_node')
 
         ## This is for visualization of the received point cloud.
-        #self.vis = o3d.visualization.Visualizer()
-        #self.vis.create_window()
-        #self.o3d_pcd = o3d.geometry.PointCloud()
+        self.debug = debug
+        if self.debug:
+            self.vis = o3d.visualization.Visualizer()
+            self.vis.create_window()
+            self.o3d_pcd = o3d.geometry.PointCloud()
         # Set up a subscription to the 'pcd' topic with a callback to the
         # function `listener_callback`
         self.pcd_subscriber = self.create_subscription(
@@ -51,16 +53,17 @@ class PCDListener(Node):
         #return tmp_pcl
 
         pcd_as_numpy_array = np.array(list(read_points(msg)))[:, :3]
+        pcl_filtering.filter_z(pcd_as_numpy_array, 0.05)
 
 
         # The rest here is for visualization.
-        #self.vis.remove_geometry(self.o3d_pcd)
-        #self.o3d_pcd = o3d.geometry.PointCloud(
-        #                    o3d.utility.Vector3dVector(pcd_as_numpy_array))
-        #self.vis.add_geometry(self.o3d_pcd)
-        #self.vis.poll_events()
-        #self.vis.update_renderer()
-        # util.publish_pointcloud(tmp_pcl, msg)
+        if self.debug:
+            self.vis.remove_geometry(self.o3d_pcd)
+            self.o3d_pcd = o3d.geometry.PointCloud(
+                            o3d.utility.Vector3dVector(pcd_as_numpy_array)).voxel_down_sample(voxel_size=0.09)
+            self.vis.add_geometry(self.o3d_pcd)
+            self.vis.poll_events()
+            self.vis.update_renderer()
 
 _DATATYPES = {}
 _DATATYPES[PointField.INT8]    = ('b', 1)
