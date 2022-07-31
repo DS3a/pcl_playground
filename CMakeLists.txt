@@ -28,7 +28,7 @@ include_directories(include)
 find_package(ament_cmake_python REQUIRED)
  
 install(
-  DIRECTORY scripts src
+  DIRECTORY scripts 
   DESTINATION share/${PROJECT_NAME}
 )
  
@@ -36,7 +36,7 @@ install(
 ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
-  scripts/find_obstacles.py
+  scripts/pcd_open3d.py
   DESTINATION lib/${PROJECT_NAME}
 )
  
