@@ -3,7 +3,7 @@
 import sys
 import os
 
-import rclpy 
+import rclpy
 from rclpy.node import Node
 import sensor_msgs.msg as sensor_msgs
 import pcd_open3d
@@ -21,12 +21,12 @@ class PCDListener(Node):
         super().__init__('pcd_subsriber_node')
 
         ## This is for visualization of the received point cloud.
-        self.vis = o3d.visualization.Visualizer()
-        self.vis.create_window()
-        self.o3d_pcd = o3d.geometry.PointCloud()
+        #self.vis = o3d.visualization.Visualizer()
+        #self.vis.create_window()
+        #self.o3d_pcd = o3d.geometry.PointCloud()
 
 
-        # Set up a subscription to the 'pcd' topic with a callback to the 
+        # Set up a subscription to the 'pcd' topic with a callback to the
         # function `listener_callback`
         self.pcd_subscriber = self.create_subscription(
             sensor_msgs.PointCloud2,    # Msg type
@@ -35,11 +35,11 @@ class PCDListener(Node):
             10                          # QoS
         )
 
-                
+
     def listener_callback(self, msg):
         # Here we convert the 'msg', which is of the type PointCloud2.
-        # I ported the function read_points2 from 
-        # the ROS1 package. 
+        # I ported the function read_points2 from
+        # the ROS1 package.
         # https://github.com/ros/common_msgs/blob/noetic-devel/sensor_msgs/src/sensor_msgs/point_cloud2.py
         # open3d_cloud = o3d.PointCloud()
         pcd_as_numpy_array = np.array(list(pcd_open3d.read_points(msg)))
@@ -51,15 +51,15 @@ class PCDListener(Node):
         self.op = o3d.utility.Vector3dVector(pcd_as_numpy_array)
         # self.o3d_pcd = o3d.geometry.PointCloud(self.op)
         # open3d_cloud.points = o3d.Vector3dVector(pcd_as_numpy_array)
-        o3d.visualization.draw_geometries(pcd_as_numpy_array)
-        self.vis.add_geometry(self.o3d_pcd)
-        self.vis.poll_events()
-        self.vis.update_renderer()
+        #o3d.visualization.draw_geometries(pcd_as_numpy_array)
+        #self.vis.add_geometry(self.o3d_pcd)
+        #self.vis.poll_events()
+        #self.vis.update_renderer()
     # self.pointcloud2_to_array(pass)
 
-## The code below is "ported" from 
+## The code below is "ported" from
 # https://github.com/ros/common_msgs/tree/noetic-devel/sensor_msgs/src/sensor_msgs
-# I'll make an official port and PR to this repo later: 
+# I'll make an official port and PR to this repo later:
 # https://github.com/ros2/common_interfaces
 
 
@@ -70,7 +70,7 @@ def main(args=None):
     rclpy.init(args=args)
     pcd_listener = PCDListener()
     rclpy.spin(pcd_listener)
-    
+
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
@@ -78,5 +78,4 @@ def main(args=None):
     rclpy.shutdown()
 
 if __name__ == '__main__':
-    lib.test()
     main()
