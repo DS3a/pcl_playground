@@ -12,6 +12,7 @@ from sensor_msgs.msg import PointCloud2, PointField
 # import sensor_msgs.point_cloud2 as pc2
 
 
+from traversability_layer import pcl_filtering
 import numpy as np
 import open3d as o3d
 
