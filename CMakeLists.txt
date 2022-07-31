@@ -36,7 +36,7 @@ install(
 ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
-  scripts/pcd_open3d.py
+  scripts/find_obstacles.py scripts/pcd_open3d.py
   DESTINATION lib/${PROJECT_NAME}
 )
  
