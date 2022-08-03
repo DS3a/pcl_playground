@@ -1,4 +1,5 @@
 import rclpy
+import traversability_layer.ros2_numpy as rnp
 from sensor_msgs.msg import PointCloud2, PointField
 import numpy as np
 import sensor_msgs
@@ -9,6 +10,7 @@ import ctypes
 import math
 import struct
 
+
 def np_to_point_cloud(points, parent_frame, parent_time):
     """ Creates a point cloud message.
     Args:
@@ -16,7 +18,7 @@ def np_to_point_cloud(points, parent_frame, parent_time):
         parent_frame: frame in which the point cloud is defined
     Returns:
         sensor_msgs/PointCloud2 message
-    """
+
     ros_dtype = PointField.FLOAT32
     dtype = np.float32
     itemsize = np.dtype(dtype).itemsize
@@ -40,8 +42,23 @@ def np_to_point_cloud(points, parent_frame, parent_time):
         row_step=(itemsize * 7 * points.shape[0]),
         data=data
     )
+    """
+
+    data = np.zeros(points.shape[0], dtype=[
+        ('x', np.float32),
+        ('y', np.float32),
+        ('z', np.float32)
+    ])
+
+    data['x'] = points[:, 0].reshape(1, -1)
+    data['y'] = points[:, 1].reshape(1, -1)
+    data['z'] = points[:, 2].reshape(1, -1)
 
 
+    msg = rnp.msgify(PointCloud2, data)
+    msg.header = Header(frame_id=parent_frame, stamp=parent_time)
+
+    return msg
 
 _DATATYPES = {}
 _DATATYPES[PointField.INT8]    = ('b', 1)
