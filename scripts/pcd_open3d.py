@@ -66,7 +66,7 @@ class PCDListener(Node):
         self.points = msg
         self.time = msg.header.stamp
         pcd_as_numpy_array = np.array(list(ros_o3d_bridge.read_points(msg)))[:, :3]
-        filtered_points = pcl_filtering.filter_z(pcd_as_numpy_array, 1, 0.05)
+        filtered_points = pcl_filtering.filter_z(pcd_as_numpy_array, 0, 0.5)
         send_msg = ros_o3d_bridge.np_to_point_cloud(filtered_points, '/velodyne', self.time)
         self.non_travsersible_points_publisher.publish(send_msg)
 
@@ -82,7 +82,7 @@ class PCDListener(Node):
 def main(args=None):
     # Boilerplate code.
     rclpy.init(args=args)
-    pcd_listener = PCDListener(debug=True)
+    pcd_listener = PCDListener(debug=False)
     rclpy.spin(pcd_listener)
 
     # Destroy the node explicitly
