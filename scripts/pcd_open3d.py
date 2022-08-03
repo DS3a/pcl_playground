@@ -30,7 +30,8 @@ class PCDListener(Node):
         # function `listener_callback`
         self.pcd_subscriber = self.create_subscription(
             PointCloud2,    # Msg type
-            '/velodyne_points',                      # topic
+#            '/velodyne_points',                      # topic
+            '/camera/aligned_depth_to_color/color/points',
             self.listener_callback,      # Function to call
             10                          # QoS
         )
@@ -66,8 +67,8 @@ class PCDListener(Node):
         self.points = msg
         self.time = msg.header.stamp
         pcd_as_numpy_array = np.array(list(ros_o3d_bridge.read_points(msg)))[:, :3]
-        filtered_points = pcl_filtering.filter_z(pcd_as_numpy_array, 0, 0.5)
-        send_msg = ros_o3d_bridge.np_to_point_cloud(filtered_points, '/velodyne', self.time)
+        filtered_points = pcl_filtering.filter_z(pcd_as_numpy_array, 0, 1.5)
+        send_msg = ros_o3d_bridge.np_to_point_cloud(filtered_points, '/camera_link', self.time)
         self.non_travsersible_points_publisher.publish(send_msg)
 
         # The rest here is for visualization.
