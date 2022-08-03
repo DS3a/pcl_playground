@@ -1,6 +1,8 @@
 import rclpy
 from sensor_msgs.msg import PointCloud2, PointField
+import numpy as np
 import sensor_msgs
+from std_msgs.msg import Header
 import sys
 from collections import namedtuple
 import ctypes
@@ -15,19 +17,19 @@ def np_to_point_cloud(points, parent_frame, parent_time):
     Returns:
         sensor_msgs/PointCloud2 message
     """
-    ros_dtype = sensor_msgs.PointField.FLOAT32
+    ros_dtype = PointField.FLOAT32
     dtype = np.float32
     itemsize = np.dtype(dtype).itemsize
 
     data = points.astype(dtype).tobytes()
 
-    fields = [sensor_msgs.PointField(
+    fields = [PointField(
         name=n, offset=i*itemsize, datatype=ros_dtype, count=1)
         for i, n in enumerate('xyzrgba')]
 
-    header = std_msgs.Header(frame_id=parent_frame, stamp=parent_time)
+    header = Header(frame_id=parent_frame, stamp=parent_time)
 
-    return sensor_msgs.PointCloud2(
+    return PointCloud2(
         header=header,
         height=1,
         width=points.shape[0],

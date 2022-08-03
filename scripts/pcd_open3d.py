@@ -34,14 +34,16 @@ class PCDListener(Node):
             self.listener_callback,      # Function to call
             10                          # QoS
         )
+        self.points = None
+        self.time = None
         self.travsersible_points_publisher = self.create_publisher(
             PointCloud2,
             '/traversible_points',
             10
         )
-        self.travsersible_points_publisher = self.create_publisher(
+        self.non_travsersible_points_publisher = self.create_publisher(
             PointCloud2,
-            '/traversible_points',
+            '/non_traversible_points',
             10
         )
 
@@ -61,9 +63,12 @@ class PCDListener(Node):
         #tmp_pcl.colors = pc_c3d
         #return tmp_pcl
 
+        self.points = msg
+        self.time = msg.header.stamp
         pcd_as_numpy_array = np.array(list(ros_o3d_bridge.read_points(msg)))[:, :3]
-        #pcl_filtering.filter_z(pcd_as_numpy_array, 1, 0.05)
-
+        filtered_points = pcl_filtering.filter_z(pcd_as_numpy_array, 1, 0.05)
+        send_msg = ros_o3d_bridge.np_to_point_cloud(filtered_points, '/velodyne', self.time)
+        self.non_travsersible_points_publisher.publish(send_msg)
 
         # The rest here is for visualization.
         if self.debug:
