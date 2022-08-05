@@ -20,11 +20,20 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(PCL REQUIRED)
+find_package(pcl_ros REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(Eigen REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system thread)
+
+
+
+
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
-include_directories(include)
 find_package(ament_cmake_python REQUIRED)
  
 install(
@@ -39,7 +48,18 @@ install(PROGRAMS
   scripts/find_obstacles.py scripts/pcd_open3d.py
   DESTINATION lib/${PROJECT_NAME}
 )
- 
+
+add_executable(pcl_test src/pcl_test.cpp)
+ament_target_dependencies(pcl_test rclcpp std_msgs PCL pcl_ros pcl_conversions Eigen Boost)
+
+install(TARGETS
+  pcl_test
+  DESTINATION lib/${PROJECT_NAME})
+
+target_link_libraries(pcl_test
+  ${PCL_LIBRARIES}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

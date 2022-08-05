@@ -10,7 +10,6 @@ import ctypes
 import math
 import struct
 
-
 def np_to_point_cloud(points, parent_frame, parent_time):
     """ Creates a point cloud message.
     Args:
@@ -145,3 +144,18 @@ def _get_struct_fmt(is_bigendian, fields, field_names=None):
 
 
 
+def XYZRGB_to_XYZ(XYZRGB_cloud):
+    """ Converts a PCL XYZRGB point cloud to an XYZ point cloud (removes color info)
+        Args:
+            XYZRGB_cloud (PointCloud_PointXYZRGB): A PCL XYZRGB point cloud
+        Returns:
+            PointCloud_PointXYZ: A PCL XYZ point cloud
+    """
+    XYZ_cloud = pcl.PointCloud()
+    points_list = []
+
+    for data in XYZRGB_cloud:
+        points_list.append([data[0], data[1], data[2]])
+
+    XYZ_cloud.from_list(points_list)
+    return XYZ_cloud

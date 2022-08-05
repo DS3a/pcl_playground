@@ -9,11 +9,6 @@ from sensor_msgs.msg import PointCloud2, PointField
 from traversability_layer import pcl_filtering, ros_o3d_bridge
 import open3d as o3d
 import numpy as np
-#import sys
-#from collections import namedtuple
-#import ctypes
-#import math
-#import struct
 
 class PCDListener(Node):
 
@@ -30,8 +25,8 @@ class PCDListener(Node):
         # function `listener_callback`
         self.pcd_subscriber = self.create_subscription(
             PointCloud2,    # Msg type
-#            '/velodyne_points',                      # topic
-            '/camera/aligned_depth_to_color/color/points',
+            '/velodyne_points',                      # topic
+            #'/camera/aligned_depth_to_color/color/points',
             self.listener_callback,      # Function to call
             10                          # QoS
         )
@@ -49,33 +44,21 @@ class PCDListener(Node):
         )
 
     def listener_callback(self, msg):
-        # pcl_data = util.convert_pcl(msg)
-        #pcl_array = np.asarray(list(read_points(msg, skip_nans=True)))
-        #print(pcl_array.shape)
-        #print(pcl_array[1, :])
-        #exit(0)
-        #pcl_data = msg # od somthing to convert to pcl
-        #tmp_pcl = pcl_data
-        #pc_p = np.asarray(pcl_data.points)
-        #print(pc_p.shape)
-        #pc_c = np.asarray(pcl_data.colors)
-        #pc_c[:,0] = 0
-        #pc_c3d = o3d.Vector3dVector(pc_c)
-        #tmp_pcl.colors = pc_c3d
-        #return tmp_pcl
 
         self.points = msg
         self.time = msg.header.stamp
         pcd_as_numpy_array = np.array(list(ros_o3d_bridge.read_points(msg)))[:, :3]
-        filtered_points = pcl_filtering.filter_z(pcd_as_numpy_array, 0, 1.5)
-        send_msg = ros_o3d_bridge.np_to_point_cloud(filtered_points, '/camera_link', self.time)
+        print(pcd_as_numpy_array.shape)
+
+        filtered_points = pcl_filtering.filter_z(pcd_as_numpy_array, 0, 0.5)
+        send_msg = ros_o3d_bridge.np_to_point_cloud(filtered_points, '/velodyne', self.time)
         self.non_travsersible_points_publisher.publish(send_msg)
 
         # The rest here is for visualization.
         if self.debug:
             self.vis.remove_geometry(self.o3d_pcd)
             self.o3d_pcd = o3d.geometry.PointCloud(
-                            o3d.utility.Vector3dVector(pcd_as_numpy_array)).voxel_down_sample(voxel_size=0.09)
+                            o3d.utility.Vector3dVector(pcd_as_numpy_array)).voxel_down_sample(voxel_size=1.09)
             self.vis.add_geometry(self.o3d_pcd)
             self.vis.poll_events()
             self.vis.update_renderer()
