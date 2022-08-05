@@ -29,6 +29,7 @@ class PclFilter : public rclcpp::Node
       pcl_subscriber = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         POINTS_TOPIC, 10, std::bind(&PclFilter::pcl_callback, this, std::placeholders::_1));
 
+      grid.setLeafSize(0.15, 0.15, 0.15);
       traversible_points_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("/traversible_points", 10);
       publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
       timer_ = this->create_wall_timer(
@@ -41,6 +42,7 @@ class PclFilter : public rclcpp::Node
       pcl::fromROSMsg(*msg, *cloud);
 
       sensor_msgs::msg::PointCloud2 send_msg;
+      grid.filter(*cloud);
       pcl::toROSMsg(*cloud, send_msg);
       traversible_points_publisher->publish(send_msg);
     }
