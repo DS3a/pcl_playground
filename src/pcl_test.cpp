@@ -51,6 +51,7 @@ class PclFilter : public rclcpp::Node
 
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZRGB>>();
+    pcl::ApproximateVoxelGrid<pcl::PointXYZRGB> grid = pcl::ApproximateVoxelGrid<pcl::PointXYZRGB>();
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcl_subscriber;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr traversible_points_publisher;
     rclcpp::TimerBase::SharedPtr timer_;
