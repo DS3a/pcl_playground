@@ -14,7 +14,7 @@
 
 //#define POINTS_TOPIC "/camera/aligned_depth_to_color/color/points"
 #define POINTS_TOPIC "/velodyne_points"
-
+#define ROBOT_HEIGHT 0.7
 
 using namespace std::chrono_literals;
 
@@ -28,15 +28,20 @@ class PclFilter : public rclcpp::Node
       pcl_subscriber = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         POINTS_TOPIC, 10, std::bind(&PclFilter::pcl_callback, this, std::placeholders::_1));
 
-      grid.setLeafSize(0.15, 0.15, 0.15);
+      grid.setLeafSize(1.15, 1.15, 1.15);
 
 
-      pcl::ConditionAnd<pcl::PointXYZRGB>::Ptr range_cond (new pcl::ConditionAnd<pcl::PointXYZRGB> ());
+      pcl::ConditionAnd<pcl::PointXYZRGB>::Ptr range_cond (new pcl::ConditionAnd<pcl::PointXYZRGB>());
+      //pcl::ConditionalRemoval<pcl::PointXYZRGB>::Ptr spat_filt (new pcl::ConditionalRemoval<pcl::PointXYZRGB>());
 
       z_cond = range_cond;
       //pcl::FieldComparison<pcl::PointCloud> ground_filter = pcl::FieldComparison<pcl::PointCloud>("z", pcl::ComparisonOps::LT, -0.15);
-      //      z_cond.addComparison(pcl::FieldComparison<pcl::PointCLoud>::Ptr (new pcl::FieldComparison<pcl::PointCloud>("z", pcl::ComparisonOps::LT, -0.15)));
+      z_cond->addComparison(pcl::FieldComparison<pcl::PointXYZRGB>::Ptr (new pcl::FieldComparison<pcl::PointXYZRGB>("z", pcl::ComparisonOps::GT, -0.15)));
+      z_cond->addComparison(pcl::FieldComparison<pcl::PointXYZRGB>::Ptr (new pcl::FieldComparison<pcl::PointXYZRGB>("z", pcl::ComparisonOps::LT, ROBOT_HEIGHT)));
 
+      //      spatial_filter = spat_filt;
+      spatial_filter.setInputCloud(cloud);
+      spatial_filter.setCondition(z_cond);
       traversible_points_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("/traversible_points", 10);
       publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
       timer_ = this->create_wall_timer(
@@ -50,6 +55,7 @@ class PclFilter : public rclcpp::Node
 
       sensor_msgs::msg::PointCloud2 send_msg;
       grid.filter(*cloud);
+      spatial_filter.filter(*cloud);
       pcl::toROSMsg(*cloud, send_msg);
       traversible_points_publisher->publish(send_msg);
     }
@@ -60,8 +66,10 @@ class PclFilter : public rclcpp::Node
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZRGB>>();
     pcl::ApproximateVoxelGrid<pcl::PointXYZRGB> grid = pcl::ApproximateVoxelGrid<pcl::PointXYZRGB>();
-
     pcl::ConditionAnd<pcl::PointXYZRGB>::Ptr z_cond;
+    pcl::ConditionalRemoval<pcl::PointXYZRGB> spatial_filter = pcl::ConditionalRemoval<pcl::PointXYZRGB>();
+
+
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcl_subscriber;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr traversible_points_publisher;
     rclcpp::TimerBase::SharedPtr timer_;
