@@ -10,16 +10,14 @@
 //#include "pcl.h"
 #include "pcl_conversions/pcl_conversions.h"
 #include "pcl/filters/approximate_voxel_grid.h"
+#include "pcl/filters/conditional_removal.h"
 
 //#define POINTS_TOPIC "/camera/aligned_depth_to_color/color/points"
 #define POINTS_TOPIC "/velodyne_points"
 
 
 using namespace std::chrono_literals;
-//using std::placeholders::_1;
 
-/* This example creates a subclass of Node and uses std::bind() to register a
-* member function as a callback from the timer. */
 
 class PclFilter : public rclcpp::Node
 {
@@ -31,6 +29,14 @@ class PclFilter : public rclcpp::Node
         POINTS_TOPIC, 10, std::bind(&PclFilter::pcl_callback, this, std::placeholders::_1));
 
       grid.setLeafSize(0.15, 0.15, 0.15);
+
+
+      pcl::ConditionAnd<pcl::PointXYZRGB>::Ptr range_cond (new pcl::ConditionAnd<pcl::PointXYZRGB> ());
+
+      z_cond = range_cond;
+      //pcl::FieldComparison<pcl::PointCloud> ground_filter = pcl::FieldComparison<pcl::PointCloud>("z", pcl::ComparisonOps::LT, -0.15);
+      //      z_cond.addComparison(pcl::FieldComparison<pcl::PointCLoud>::Ptr (new pcl::FieldComparison<pcl::PointCloud>("z", pcl::ComparisonOps::LT, -0.15)));
+
       traversible_points_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("/traversible_points", 10);
       publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
       timer_ = this->create_wall_timer(
@@ -52,9 +58,10 @@ class PclFilter : public rclcpp::Node
     {
     }
 
-
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZRGB>>();
     pcl::ApproximateVoxelGrid<pcl::PointXYZRGB> grid = pcl::ApproximateVoxelGrid<pcl::PointXYZRGB>();
+
+    pcl::ConditionAnd<pcl::PointXYZRGB>::Ptr z_cond;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcl_subscriber;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr traversible_points_publisher;
     rclcpp::TimerBase::SharedPtr timer_;
