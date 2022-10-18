@@ -61,6 +61,7 @@ ament_target_dependencies(pcl_filter rclcpp std_msgs PCL pcl_ros pcl_conversions
 install(TARGETS
   pcl_test
   pcl_filter
+  pcl_rescale
   DESTINATION lib/${PROJECT_NAME})
 
 target_link_libraries(pcl_test
