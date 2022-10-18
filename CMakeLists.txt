@@ -52,6 +52,9 @@ install(PROGRAMS
 add_executable(pcl_test src/pcl_test.cpp)
 ament_target_dependencies(pcl_test rclcpp std_msgs PCL pcl_ros pcl_conversions Eigen Boost)
 
+add_executable(pcl_rescale src/pcl_rescale.cpp)
+ament_target_dependencies(pcl_rescale rclcpp std_msgs PCL pcl_ros pcl_conversions Eigen Boost)
+
 add_executable(pcl_filter src/pcl_filter.cpp)
 ament_target_dependencies(pcl_filter rclcpp std_msgs PCL pcl_ros pcl_conversions Eigen Boost)
 
