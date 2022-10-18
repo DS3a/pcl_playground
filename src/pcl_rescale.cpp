@@ -17,16 +17,21 @@
 #include "pcl/common/transforms.h"
 #include "pcl/common/common.h"
 
-//#define POINTS_TOPIC "/camera/aligned_depth_to_color/color/points"
+#include <boost/foreach.hpp>
+
 #define POINTS_TOPIC "/velodynes/left/points"
-#define CENTER_POINTS_TOPIC "/velodybes/center/points"
+#define CENTER_POINTS_TOPIC "/velodynes/center/points"
 #define ROBOT_HEIGHT 2.8
 #define POINT_TYPE pcl::PointXYZ
 
 using namespace std::chrono_literals;
 
-void rescaleClouds(pcl::PointCloud<pcl::PointXYZ>::Ptr& goldenCloud, pcl::PointCloud<pcl::PointXYZ>::Ptr& sampleCloud, bool debugOverlay = false, bool primaryAxisOnly = true) {
-    //analyze golden cloud
+
+bool initiated = false;
+
+void rescaleCloudsPrereq(pcl::PointCloud<pcl::PointXYZ>::Ptr& goldenCloud, pcl::PointCloud<pcl::PointXYZ>::Ptr& sampleCloud) {
+
+  //analyze golden cloud
     pcl::PCA<pcl::PointXYZ> pcaGolden;
     pcaGolden.setInputCloud(goldenCloud);
     Eigen::Matrix3f goldenEVs_Dir = pcaGolden.getEigenVectors();
@@ -38,55 +43,55 @@ void rescaleClouds(pcl::PointCloud<pcl::PointXYZ>::Ptr& goldenCloud, pcl::PointC
     pcl::transformPointCloud(*goldenCloud, *orientedGolden, goldenTransform.inverse());
     pcl::PointXYZ goldenMin, goldenMax;
     pcl::getMinMax3D(*orientedGolden, goldenMin, goldenMax);
-
     //analyze sample cloud
+
     pcl::PCA<pcl::PointXYZ> pcaSample;
     pcaSample.setInputCloud(sampleCloud);
-    Eigen::Matrix3f sampleEVs_Dir = pcaSample.getEigenVectors();
-    Eigen::Vector4f sampleMidPt = pcaSample.getMean();
+    static Eigen::Matrix3f sampleEVs_Dir = pcaSample.getEigenVectors();
+    static Eigen::Vector4f sampleMidPt = pcaSample.getMean();
+
     Eigen::Matrix4f sampleTransform = Eigen::Matrix4f::Identity();
     sampleTransform.block<3, 3>(0, 0) = sampleEVs_Dir;
     sampleTransform.block<4, 1>(0, 3) = sampleMidPt;
     pcl::PointCloud<pcl::PointXYZ>::Ptr orientedSample(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::transformPointCloud(*sampleCloud, *orientedSample, sampleTransform.inverse());
-    pcl::PointXYZ sampleMin, sampleMax;
-    pcl::getMinMax3D(*orientedSample, sampleMin, sampleMax);
 
-    //apply scaling to oriented sample cloud 
+}
+
+void rescaleClouds(pcl::PointCloud<pcl::PointXYZ>::Ptr& sampleCloud) {
+    //apply scaling to oriented sample cloud
+    /*
     double xScale = (sampleMax.x - sampleMin.x) / (goldenMax.x - goldenMin.x);
     double yScale = (sampleMax.y - sampleMin.y) / (goldenMax.y - goldenMin.y);
     double zScale = (sampleMax.z - sampleMin.z) / (goldenMax.z - goldenMin.z);
+    */
+    double xScale = 1.5;
+    double yScale = 1.5;
+    double zScale = 1.5;
 
-    if (primaryAxisOnly) { std::cout << "scale: " << xScale << std::endl; }
-    else { std::cout << "xScale: " << xScale << "yScale: " << yScale << "zScale: " << zScale << std::endl; }
 
+    /*TODO move these two out of this scope for optimization*/
+    Eigen::Matrix4f sampleTransform = Eigen::Matrix4f::Identity();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr orientedSample(new pcl::PointCloud<pcl::PointXYZ>);
+    /*TODO move these two up for optimization*/
 
-    for (long unsigned int i = 0; i < orientedSample->points.size(); i++)
-    {
-        if (primaryAxisOnly)
-        {
-            orientedSample->points[i].x = orientedSample->points[i].x / xScale;
-            orientedSample->points[i].y = orientedSample->points[i].y / xScale;
-            orientedSample->points[i].z = orientedSample->points[i].z / xScale;
-        }
-        else
-        {
-            orientedSample->points[i].x = orientedSample->points[i].x / xScale;
-            orientedSample->points[i].y = orientedSample->points[i].y / yScale;
-            orientedSample->points[i].z = orientedSample->points[i].z / zScale;
-        }
+    pcl::transformPointCloud(*sampleCloud, *orientedSample, sampleTransform.inverse());
+
+    /*
+    for (long unsigned int i = 0; i < orientedSample->points.size(); i++) {
+        orientedSample->points[i].x = orientedSample->points[i].x / xScale;
+        orientedSample->points[i].y = orientedSample->points[i].y / yScale;
+        orientedSample->points[i].z = orientedSample->points[i].z / zScale;
+    }
+    */
+    BOOST_FOREACH(pcl::PointXYZ &point, orientedSample->points) {
+      point.x = point.x / xScale;
+      point.y = point.y / yScale;
+      point.z = point.z / zScale;
     }
     //depending on your next step, it may be reasonable to leave this cloud at its eigen orientation, but this transformation will allow this function to scale in place.
 
-    if (debugOverlay)
-    {
-        goldenCloud = orientedGolden;
-        sampleCloud = orientedSample;
-    }
-    else
-    {
-        pcl::transformPointCloud(*orientedSample, *sampleCloud, sampleTransform);
-    }
+    pcl::transformPointCloud(*orientedSample, *sampleCloud, sampleTransform);
 }
 
 
@@ -102,7 +107,7 @@ class PclFilter : public rclcpp::Node
       center_pcl_subscriber = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         CENTER_POINTS_TOPIC, 10, std::bind(&PclFilter::center_pcl_callback, this, std::placeholders::_1));
 
-      rescaled_points_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("velodynes/center/points/rescaled", 10);
+      rescaled_points_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("velodynes/center/rescaled_points", 10);
 
 
       grid.setLeafSize(1.15, 1.15, 1.15);
@@ -112,14 +117,21 @@ class PclFilter : public rclcpp::Node
     void pcl_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
       // This will convert the message into a pcl::PointCloud
       pcl::fromROSMsg(*msg, *cloud);
-      rescaleClouds(cloud, center_cloud);
       grid.filter(*cloud);
+      if (!initiated) {
+        initiated = true;
+        if ((cloud->size() > 0) && (center_cloud->size() > 0)) {
+          rescaleCloudsPrereq(cloud, center_cloud);
+        }
+      }
     }
 
     void center_pcl_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
       pcl::fromROSMsg(*msg, *center_cloud);
+        rescaleClouds(center_cloud);
       sensor_msgs::msg::PointCloud2 rescaled_points_msg;
-      pcl::toROSMsg(*rescaled_cloud, rescaled_points_msg);
+      pcl::toROSMsg(*center_cloud, rescaled_points_msg);
+      // rescaled_points_msg.header.frame_id = "velodyne_center";
       rescaled_points_publisher->publish(rescaled_points_msg);
     }
 
