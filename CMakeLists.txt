@@ -67,6 +67,10 @@ target_link_libraries(pcl_test
   ${PCL_LIBRARIES}
 )
 
+target_link_libraries(pcl_rescale
+  ${PCL_LIBRARIES}
+)
+
 target_link_libraries(pcl_filter
   ${PCL_LIBRARIES}
 )
