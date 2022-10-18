@@ -35,12 +35,12 @@ find_package(Boost REQUIRED COMPONENTS system thread)
 # find_package(<dependency> REQUIRED)
 
 find_package(ament_cmake_python REQUIRED)
- 
+
 install(
-  DIRECTORY scripts 
+  DIRECTORY scripts launch
   DESTINATION share/${PROJECT_NAME}
 )
- 
+
 
 ament_python_install_package(${PROJECT_NAME})
 

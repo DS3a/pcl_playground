@@ -10,12 +10,14 @@
 #include "pcl_conversions/pcl_conversions.h"
 #include "pcl/filters/approximate_voxel_grid.h"
 #include "pcl/filters/conditional_removal.h"
+#include "pcl/filters/crop_hull.h"
 #include "pcl/common/io.h"
+#include "pcl/Vertices.h"
 
 //#define POINTS_TOPIC "/camera/aligned_depth_to_color/color/points"
-#define POINTS_TOPIC "/velodyne_points"
-#define ROBOT_HEIGHT 1.7
-#define POINT_TYPE pcl::PointXYZRGB
+#define POINTS_TOPIC "/velodynes/left/points"
+#define ROBOT_HEIGHT 2.8
+#define POINT_TYPE pcl::PointXYZ
 
 using namespace std::chrono_literals;
 
@@ -34,22 +36,30 @@ class PclFilter : public rclcpp::Node
 
       pcl::ConditionAnd<POINT_TYPE>::Ptr range_cond (new pcl::ConditionAnd<POINT_TYPE>());
       z_obstacle_cond = range_cond;
-      z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::GT, 0.07)));
-      z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::LT, ROBOT_HEIGHT)));
+      z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::LT, 0.27)));
+      z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::GT, -ROBOT_HEIGHT)));
 
       // TODO verify these conditions after checking with final pcl
-      z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::GT, 0.20)));
-      z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::LT, -1)));
+      z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::GT, -0.70)));
+      // z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::LT, -0.5)));
+      /*
       z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::GT, 0.5)));
       z_obstacle_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::LT, -0.5)));
+      */
+
+      const std::vector<pcl::Vertices> &polygon = {}; // = std::vector<pcl::Vertices>::Vector();
+      pcl::Vertices v1, v2, v3, v4;
       spatial_obstacle_filter.setInputCloud(cloud);
       spatial_obstacle_filter.setCondition(z_obstacle_cond);
-
-
+      obstacle_hull_filter.setHullCloud(cloud);
+      obstacle_hull_filter.setHullIndices(polygon);
+      // TODO set hull indices         ^^
+      obstacle_hull_filter.setCropOutside(true);
       pcl::ConditionAnd<POINT_TYPE>::Ptr traversible_range_cond (new pcl::ConditionAnd<POINT_TYPE>());
       z_traversible_cond = traversible_range_cond;
       z_traversible_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::GT, -0.05)));
       z_traversible_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::LT, 0.05)));
+
       spatial_traversible_filter.setInputCloud(traversible_cloud);
       spatial_traversible_filter.setCondition(z_traversible_cond);
 
@@ -68,7 +78,6 @@ class PclFilter : public rclcpp::Node
       pcl::fromROSMsg(*msg, *cloud);
       grid.filter(*cloud);
 
-
       //pcl::PointCloud<POINT_TYPE>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<POINT_TYPE>>(pcl::PointCloud<POINT_TYPE>(*cloud));
       //sensor_msgs::msg::PointCloud2 temp_msg;
       //pcl::toROSMsg(*cloud, temp_msg);
@@ -78,6 +87,7 @@ class PclFilter : public rclcpp::Node
       auto pcl_filter_lambda = [&](pcl::PointCloud<POINT_TYPE>::Ptr cloud, rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub, pcl::ConditionalRemoval<POINT_TYPE> filter) {
         sensor_msgs::msg::PointCloud2 obstacles_msg;
         filter.filter(*cloud);
+        // obstacle_hull_filter.filter(*cloud);
         pcl::toROSMsg(*cloud, obstacles_msg);
         pub->publish(obstacles_msg);
       };
@@ -103,6 +113,7 @@ class PclFilter : public rclcpp::Node
     pcl::PointCloud<POINT_TYPE>::Ptr traversible_cloud = boost::make_shared<pcl::PointCloud<POINT_TYPE>>();
     pcl::ApproximateVoxelGrid<POINT_TYPE> grid = pcl::ApproximateVoxelGrid<POINT_TYPE>();
 
+    pcl::CropHull<POINT_TYPE> obstacle_hull_filter;
 
     pcl::ConditionAnd<POINT_TYPE>::Ptr z_obstacle_cond;
     pcl::ConditionAnd<POINT_TYPE>::Ptr z_traversible_cond;
