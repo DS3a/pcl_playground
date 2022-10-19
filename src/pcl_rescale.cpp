@@ -16,7 +16,7 @@
 #include "pcl/common/pca.h"
 #include "pcl/common/transforms.h"
 #include "pcl/common/common.h"
-
+#include "../include/rectangle_filter.h"
 #include <boost/foreach.hpp>
 
 #define POINTS_TOPIC "/velodynes/left/points"
@@ -59,16 +59,9 @@ void rescaleCloudsPrereq(pcl::PointCloud<pcl::PointXYZ>::Ptr& goldenCloud, pcl::
 }
 
 void rescaleClouds(pcl::PointCloud<pcl::PointXYZ>::Ptr& sampleCloud) {
-    //apply scaling to oriented sample cloud
-    /*
-    double xScale = (sampleMax.x - sampleMin.x) / (goldenMax.x - goldenMin.x);
-    double yScale = (sampleMax.y - sampleMin.y) / (goldenMax.y - goldenMin.y);
-    double zScale = (sampleMax.z - sampleMin.z) / (goldenMax.z - goldenMin.z);
-    */
     double xScale = 2.0;
     double yScale = 2.0;
     double zScale = 2.0;
-
 
     /*TODO move these two out of this scope for optimization*/
     Eigen::Matrix4f sampleTransform = Eigen::Matrix4f::Identity();
@@ -77,23 +70,16 @@ void rescaleClouds(pcl::PointCloud<pcl::PointXYZ>::Ptr& sampleCloud) {
 
     pcl::transformPointCloud(*sampleCloud, *orientedSample, sampleTransform.inverse());
 
-    /*
-    for (long unsigned int i = 0; i < orientedSample->points.size(); i++) {
-        orientedSample->points[i].x = orientedSample->points[i].x / xScale;
-        orientedSample->points[i].y = orientedSample->points[i].y / yScale;
-        orientedSample->points[i].z = orientedSample->points[i].z / zScale;
-    }
-    */
     BOOST_FOREACH(pcl::PointXYZ &point, orientedSample->points) {
       point.x = point.x / xScale;
       point.y = point.y / yScale;
       point.z = point.z / zScale;
     }
-    //depending on your next step, it may be reasonable to leave this cloud at its eigen orientation, but this transformation will allow this function to scale in place.
 
     pcl::transformPointCloud(*orientedSample, *sampleCloud, sampleTransform);
-}
 
+    // TODO filter the sample cloud
+}
 
 class PclFilter : public rclcpp::Node
 {
@@ -108,14 +94,14 @@ class PclFilter : public rclcpp::Node
         CENTER_POINTS_TOPIC, 10, std::bind(&PclFilter::center_pcl_callback, this, std::placeholders::_1));
 
       rescaled_points_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("velodynes/center/rescaled_points", 10);
-
-
+      rectangle_conditional_filter.setInputCloud(cloud);
+      //rectangle_conditional_filter.setCondition();
+      // TODO               add condition here ^^^
       grid.setLeafSize(1.15, 1.15, 1.15);
     }
 
   private:
     void pcl_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-      // This will convert the message into a pcl::PointCloud
       pcl::fromROSMsg(*msg, *cloud);
       grid.filter(*cloud);
       if (!initiated) {
@@ -128,10 +114,11 @@ class PclFilter : public rclcpp::Node
 
     void center_pcl_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
       pcl::fromROSMsg(*msg, *center_cloud);
-        rescaleClouds(center_cloud);
+      rescaleClouds(center_cloud);
+      // TODO apply rectangle_filter here
+      rectangle_conditional_filter.filter(*cloud);
       sensor_msgs::msg::PointCloud2 rescaled_points_msg;
       pcl::toROSMsg(*center_cloud, rescaled_points_msg);
-      // rescaled_points_msg.header.frame_id = "velodyne_center";
       rescaled_points_publisher->publish(rescaled_points_msg);
     }
 
@@ -149,14 +136,13 @@ class PclFilter : public rclcpp::Node
     pcl::ConditionalRemoval<POINT_TYPE> spatial_obstacle_filter = pcl::ConditionalRemoval<POINT_TYPE>();
     pcl::ConditionalRemoval<POINT_TYPE> spatial_traversible_filter = pcl::ConditionalRemoval<POINT_TYPE>();
 
-
+    pcl::ConditionalRemoval<POINT_TYPE> rectangle_conditional_filter = pcl::ConditionalRemoval<POINT_TYPE>();
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcl_subscriber;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr center_pcl_subscriber;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr rescaled_points_publisher;
 
 
     rclcpp::TimerBase::SharedPtr timer_;
-  /*    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;*/
     size_t count_;
 };
 
@@ -165,6 +151,5 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<PclFilter>());
   rclcpp::shutdown();
-  //N::helloworld();
   return 0;
 }
