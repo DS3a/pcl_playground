@@ -65,9 +65,9 @@ void rescaleClouds(pcl::PointCloud<pcl::PointXYZ>::Ptr& sampleCloud) {
     double yScale = (sampleMax.y - sampleMin.y) / (goldenMax.y - goldenMin.y);
     double zScale = (sampleMax.z - sampleMin.z) / (goldenMax.z - goldenMin.z);
     */
-    double xScale = 1.5;
-    double yScale = 1.5;
-    double zScale = 1.5;
+    double xScale = 1.7;
+    double yScale = 1.7;
+    double zScale = 1.7;
 
 
     /*TODO move these two out of this scope for optimization*/
