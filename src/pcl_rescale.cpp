@@ -100,10 +100,10 @@ class PclFilter : public rclcpp::Node
      // RectangleFilter::RectangleFilter<POINT_TYPE>::Ptr rect_filter_condition (new RectangleFilter::RectangleFilter<POINT_TYPE>());
 
       pcl::ConditionOr<POINT_TYPE>::Ptr total_cond (new pcl::ConditionOr<POINT_TYPE>());
-      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::GT, 200)));
-      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::LT, -222.8)));
-      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::GT, 220.8)));
-      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::LT, -220.8)));
+      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::GT, 1.0)));
+      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::LT, -0.8)));
+      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::GT, 0.8)));
+      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::LT, -0.8)));
       // pcl::RectangleFilter<POINT_TYPE>::Ptr rect_filter_condition (new pcl::RectangleFilter<POINT_TYPE>());
       rectangle_conditional_filter.setCondition(total_cond);
       // TODO               add condition here ^^^
@@ -125,7 +125,7 @@ class PclFilter : public rclcpp::Node
     void center_pcl_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
       pcl::fromROSMsg(*msg, *center_cloud);
       rescaleClouds(center_cloud);
-      rectangle_conditional_filter.filter(*cloud);
+      rectangle_conditional_filter.filter(*center_cloud);
       sensor_msgs::msg::PointCloud2 rescaled_points_msg;
       pcl::toROSMsg(*center_cloud, rescaled_points_msg);
       rescaled_points_publisher->publish(rescaled_points_msg);
