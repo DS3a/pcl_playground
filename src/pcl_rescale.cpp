@@ -100,8 +100,8 @@ class PclFilter : public rclcpp::Node
      // RectangleFilter::RectangleFilter<POINT_TYPE>::Ptr rect_filter_condition (new RectangleFilter::RectangleFilter<POINT_TYPE>());
 
       pcl::ConditionOr<POINT_TYPE>::Ptr total_cond (new pcl::ConditionOr<POINT_TYPE>());
-      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::GT, 1.0)));
-      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::LT, -0.8)));
+      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::GT, 0.9)));
+      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::LT, -0.9)));
       total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::GT, 0.8)));
       total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::LT, -0.8)));
       // pcl::RectangleFilter<POINT_TYPE>::Ptr rect_filter_condition (new pcl::RectangleFilter<POINT_TYPE>());
