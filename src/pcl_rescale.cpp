@@ -94,7 +94,7 @@ class PclFilter : public rclcpp::Node
       center_pcl_subscriber = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         CENTER_POINTS_TOPIC, 10, std::bind(&PclFilter::center_pcl_callback, this, std::placeholders::_1));
 
-      rescaled_points_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("velodynes/center/rescaled_points", 10);
+      rescaled_points_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("velodynes/center/points/rescaled/filtered", 10);
       rectangle_conditional_filter.setInputCloud(cloud);
 
      // RectangleFilter::RectangleFilter<POINT_TYPE>::Ptr rect_filter_condition (new RectangleFilter::RectangleFilter<POINT_TYPE>());

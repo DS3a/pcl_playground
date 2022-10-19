@@ -15,4 +15,9 @@ def generate_launch_description():
             name='left_pcl_filter',
             remappings=[("/velodynes/left/points", "/velodynes/right/points"), ("traversible_points", "/velodynes/right/traversible_points"), ("non_traversible_points", "/velodynes/right/non_traversible_points")],
         ),
+         Node(
+            package='traversability_layer',
+            executable='pcl_rescale',
+            name='center_pcl_filter',
+        ),
     ])
