@@ -76,7 +76,7 @@ class PclFilter : public rclcpp::Node
   private:
     void center_pcl_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
       pcl::fromROSMsg(*msg, *center_cloud);
-      rescaleClouds(center_cloud);
+      // rescaleClouds(center_cloud);
       rectangle_conditional_filter.filter(*center_cloud);
       sensor_msgs::msg::PointCloud2 rescaled_points_msg;
       pcl::toROSMsg(*center_cloud, rescaled_points_msg);
