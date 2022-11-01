@@ -10,11 +10,11 @@
 #include "pcl_conversions/pcl_conversions.h"
 #include "pcl/filters/approximate_voxel_grid.h"
 #include "pcl/filters/conditional_removal.h"
+#include "pcl/filters/crop_hull.h"
 #include "pcl/common/io.h"
 #include "pcl/Vertices.h"
-#include <pcl/point_cloud.h>
-#include "pcl/common/transforms.h"
 
+//#define POINTS_TOPIC "/camera/aligned_depth_to_color/color/points"
 #define POINTS_TOPIC "/velodynes/left/points"
 #define ROBOT_HEIGHT 2.8
 #define POINT_TYPE pcl::PointXYZ
@@ -51,6 +51,10 @@ class PclFilter : public rclcpp::Node
       pcl::Vertices v1, v2, v3, v4;
       spatial_obstacle_filter.setInputCloud(cloud);
       spatial_obstacle_filter.setCondition(z_obstacle_cond);
+      obstacle_hull_filter.setHullCloud(cloud);
+      obstacle_hull_filter.setHullIndices(polygon);
+      // TODO set hull indices         ^^
+      obstacle_hull_filter.setCropOutside(true);
       pcl::ConditionAnd<POINT_TYPE>::Ptr traversible_range_cond (new pcl::ConditionAnd<POINT_TYPE>());
       z_traversible_cond = traversible_range_cond;
       z_traversible_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::GT, -0.05)));
@@ -74,38 +78,20 @@ class PclFilter : public rclcpp::Node
       pcl::fromROSMsg(*msg, *cloud);
       grid.filter(*cloud);
 
+      //pcl::PointCloud<POINT_TYPE>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<POINT_TYPE>>(pcl::PointCloud<POINT_TYPE>(*cloud));
+      //sensor_msgs::msg::PointCloud2 temp_msg;
+      //pcl::toROSMsg(*cloud, temp_msg);
+      //      pcl::fromROSMsg(temp_msg, *traversible_cloud);
+      //traversible_cloud = temp_cloud;
+
       auto pcl_filter_lambda = [&](pcl::PointCloud<POINT_TYPE>::Ptr cloud, rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub, pcl::ConditionalRemoval<POINT_TYPE> filter) {
         sensor_msgs::msg::PointCloud2 obstacles_msg;
-        // TODO transform coordinates here
-	float theta = -0.687132; //M_PI/4; 
-	Eigen::Affine3f transform_y = Eigen::Affine3f::Identity();
-	transform_y.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitY()));
-        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud (new pcl::PointCloud<POINT_TYPE>());
-        pcl::transformPointCloud(*cloud, *transformed_cloud, transform_y);
-        static pcl::ConditionalRemoval<POINT_TYPE> tf_filter = pcl::ConditionalRemoval<POINT_TYPE>();
-        pcl::ConditionOr<POINT_TYPE>::Ptr tf_filter_cond (new pcl::ConditionOr<POINT_TYPE>());
-	tf_filter_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::GT, 0.8)));
-	tf_filter_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::LT, -0.5)));
-	tf_filter_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::GT, 2.5)));
-	tf_filter_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::LT, -0.5)));
-	tf_filter.setInputCloud(transformed_cloud);
-	tf_filter.setCondition(tf_filter_cond);
-	tf_filter.filter(*transformed_cloud);
-	
-
-	float inv_theta = -theta; 
-	Eigen::Affine3f inv_transform_y = Eigen::Affine3f::Identity();
-	inv_transform_y.rotate(Eigen::AngleAxisf(inv_theta, Eigen::Vector3f::UnitY()));
-        pcl::PointCloud<pcl::PointXYZ>::Ptr inv_transformed_cloud (new pcl::PointCloud<POINT_TYPE>());
-        pcl::transformPointCloud(*transformed_cloud, *inv_transformed_cloud, inv_transform_y);
-
-	filter.setInputCloud(inv_transformed_cloud);
-	filter.filter(*inv_transformed_cloud);
-        pcl::toROSMsg(*inv_transformed_cloud, obstacles_msg);
+        filter.filter(*cloud);
+        // obstacle_hull_filter.filter(*cloud);
+        pcl::toROSMsg(*cloud, obstacles_msg);
         pub->publish(obstacles_msg);
       };
 
-      // TODO add matrix transform here
       std::thread obstacles_publisher(pcl_filter_lambda, cloud, non_traversible_points_publisher, spatial_obstacle_filter);
 
       pcl::fromROSMsg(*msg, *traversible_cloud);
@@ -126,6 +112,8 @@ class PclFilter : public rclcpp::Node
     pcl::PointCloud<POINT_TYPE>::Ptr cloud = boost::make_shared<pcl::PointCloud<POINT_TYPE>>();
     pcl::PointCloud<POINT_TYPE>::Ptr traversible_cloud = boost::make_shared<pcl::PointCloud<POINT_TYPE>>();
     pcl::ApproximateVoxelGrid<POINT_TYPE> grid = pcl::ApproximateVoxelGrid<POINT_TYPE>();
+
+    pcl::CropHull<POINT_TYPE> obstacle_hull_filter;
 
     pcl::ConditionAnd<POINT_TYPE>::Ptr z_obstacle_cond;
     pcl::ConditionAnd<POINT_TYPE>::Ptr z_traversible_cond;
