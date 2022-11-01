@@ -58,26 +58,37 @@ class PclFilter : public rclcpp::Node
         CENTER_POINTS_TOPIC, 10, std::bind(&PclFilter::center_pcl_callback, this, std::placeholders::_1));
 
       rescaled_points_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("velodynes/center/points/rescaled/filtered", 10);
-      rectangle_conditional_filter.setInputCloud(cloud);
+      rectangle_conditional_filter.setInputCloud(center_cloud);
+      z_filter.setInputCloud(center_cloud);
 
      // RectangleFilter::RectangleFilter<POINT_TYPE>::Ptr rect_filter_condition (new RectangleFilter::RectangleFilter<POINT_TYPE>());
 
       pcl::ConditionOr<POINT_TYPE>::Ptr total_cond (new pcl::ConditionOr<POINT_TYPE>());
-      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::GT, 0.9)));
+      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::GT, 1.9)));
       total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("x", pcl::ComparisonOps::LT, -2.5)));
-      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::GT, 0.7)));
-      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::LT, -0.7)));
+      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::GT, 1.7)));
+      total_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("y", pcl::ComparisonOps::LT, -1.7)));
       // pcl::RectangleFilter<POINT_TYPE>::Ptr rect_filter_condition (new pcl::RectangleFilter<POINT_TYPE>());
       rectangle_conditional_filter.setCondition(total_cond);
       // TODO               add condition here ^^^
+      
+      pcl::ConditionAnd<POINT_TYPE>::Ptr z_cond (new pcl::ConditionAnd<POINT_TYPE>());
+
+      z_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::LT, 0.0)));
+      z_filter.setCondition(z_cond);
+
+      
       grid.setLeafSize(1.15, 1.15, 1.15);
     }
 
   private:
     void center_pcl_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+      //rescaled_points_publisher->publish(*msg);
+      
       pcl::fromROSMsg(*msg, *center_cloud);
-      // rescaleClouds(center_cloud);
+      rescaleClouds(center_cloud);
       rectangle_conditional_filter.filter(*center_cloud);
+      z_filter.filter(*center_cloud);
       sensor_msgs::msg::PointCloud2 rescaled_points_msg;
       pcl::toROSMsg(*center_cloud, rescaled_points_msg);
       rescaled_points_publisher->publish(rescaled_points_msg);
@@ -90,14 +101,10 @@ class PclFilter : public rclcpp::Node
     pcl::PointCloud<POINT_TYPE>::Ptr rescaled_cloud = boost::make_shared<pcl::PointCloud<POINT_TYPE>>();
     pcl::ApproximateVoxelGrid<POINT_TYPE> grid = pcl::ApproximateVoxelGrid<POINT_TYPE>();
 
-    pcl::CropHull<POINT_TYPE> obstacle_hull_filter;
-
     pcl::ConditionAnd<POINT_TYPE>::Ptr z_obstacle_cond;
-    pcl::ConditionAnd<POINT_TYPE>::Ptr z_traversible_cond;
-    pcl::ConditionalRemoval<POINT_TYPE> spatial_obstacle_filter = pcl::ConditionalRemoval<POINT_TYPE>();
-    pcl::ConditionalRemoval<POINT_TYPE> spatial_traversible_filter = pcl::ConditionalRemoval<POINT_TYPE>();
 
     pcl::ConditionalRemoval<POINT_TYPE> rectangle_conditional_filter = pcl::ConditionalRemoval<POINT_TYPE>();
+    pcl::ConditionalRemoval<POINT_TYPE> z_filter = pcl::ConditionalRemoval<POINT_TYPE>();
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcl_subscriber;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr center_pcl_subscriber;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr rescaled_points_publisher;
