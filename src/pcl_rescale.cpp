@@ -74,7 +74,7 @@ class PclFilter : public rclcpp::Node
       
       pcl::ConditionAnd<POINT_TYPE>::Ptr z_cond (new pcl::ConditionAnd<POINT_TYPE>());
 
-      z_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::LT, 0.0)));
+      z_cond->addComparison(pcl::FieldComparison<POINT_TYPE>::Ptr (new pcl::FieldComparison<POINT_TYPE>("z", pcl::ComparisonOps::LT, -0.5)));
       z_filter.setCondition(z_cond);
 
       
