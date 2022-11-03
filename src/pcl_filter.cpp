@@ -16,7 +16,7 @@
 #include "pcl/common/transforms.h"
 
 #define POINTS_TOPIC "/velodynes/left/points"
-#define ROBOT_HEIGHT 2.8
+#define ROBOT_HEIGHT 0.8
 #define POINT_TYPE pcl::PointXYZ
 
 using namespace std::chrono_literals;
